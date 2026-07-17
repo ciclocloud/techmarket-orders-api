@@ -22,9 +22,18 @@ spec:
           image: REPOSITORY_URI_PLACEHOLDER:latest
           ports:
             - containerPort: 3000
-          # ESTE HEALTH CHECK FALLARÁ INTENCIONALMENTE
+          env:
+            - name: DEPLOY_COLOR
+              value: "Green"
           readinessProbe:
             httpGet:
               path: /health
               port: 3000
             initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10

@@ -22,9 +22,12 @@ spec:
           image: REPOSITORY_URI_PLACEHOLDER:latest
           ports:
             - containerPort: 3000
+          env:
+            - name: DEPLOY_COLOR
+              value: "Blue"
           readinessProbe:
             httpGet:
-              path: /health             # /health volvió a la normalidad 
+              path: /health
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 5
