@@ -18,15 +18,15 @@ Este repositorio contiene la implementación de una arquitectura de microservici
 ## 📊 Arquitectura del Despliegue
 Este diagrama muestra cómo tu pipeline decide inteligentemente dónde desplegar:
 
-```mermaid
 graph TD
     A[Push a Main] --> B{Detectar Color}
     B -- Es Blue --> C[Desplegar en Green]
     B -- Es Green --> D[Desplegar en Blue]
-    C & D --> E[Validación de Salud (Smoke Test)]
-    E -- Error --> F[Rollback Automático]
-    E -- OK --> G[Switch de Tráfico (Patch)]
-    G --> H[Auto-Tag & Release]
+    C --> E[Validacion de Salud]
+    D --> E
+    E -- Error --> F[Rollback Automatico]
+    E -- OK --> G[Switch de Trafico]
+    G --> H[Auto-Tag y Release]
 
 ---
 
