@@ -15,17 +15,18 @@ Este repositorio contiene la implementación de una arquitectura de microservici
 
 ---
 
-## 🏗️ Pipeline Architecture
+## 📊 Arquitectura del Despliegue
+Este diagrama muestra cómo tu pipeline decide inteligentemente dónde desplegar:
 
-La lógica de despliegue se divide en las siguientes etapas críticas:
-
-| Etapa | Descripción |
-| :--- | :--- |
-| **CI** | Ejecución de pruebas unitarias y construcción de imagen (Docker/ECR). |
-| **Deployment** | Despliegue en el entorno inactivo (Blue o Green) mediante plantillas (`envsubst`). |
-| **Health Check** | Validación de salud mediante `curl` y túneles `port-forward` internos. |
-| **Traffic Switch** | Conmutación de selector de servicio en caso de éxito. |
-| **Rollback** | Reversión automática en caso de fallo (Gate failure). |
+```mermaid
+graph TD
+    A[Push a Main] --> B{Detectar Color}
+    B -- Es Blue --> C[Desplegar en Green]
+    B -- Es Green --> D[Desplegar en Blue]
+    C & D --> E[Validación de Salud (Smoke Test)]
+    E -- Error --> F[Rollback Automático]
+    E -- OK --> G[Switch de Tráfico (Patch)]
+    G --> H[Auto-Tag & Release]
 
 ---
 
