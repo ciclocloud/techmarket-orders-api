@@ -1,0 +1,30 @@
+name: Auto Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Se activa solo cuando haces push de un tag que empiece con 'v'
+
+permissions:
+  contents: write # Necesario para crear la Release
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Crear Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## Cambios en esta versión
+            Esta versión ha sido desplegada automáticamente desde la rama main.
+            Tag: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
