@@ -25,6 +25,6 @@ spec:
           # ESTE HEALTH CHECK FALLARÁ INTENCIONALMENTE
           readinessProbe:
             httpGet:
-              path: /ruta-inexistente
+              path: /health
               port: 3000
             initialDelaySeconds: 5
