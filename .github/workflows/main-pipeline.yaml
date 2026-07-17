@@ -1,0 +1,92 @@
+name: TechMarket CI/CD y Auto-Healing
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: techmarket-orders
+  CLUSTER_NAME: techmarket-cluster
+
+jobs:
+  ci-test-and-build:
+    name: Integración Continua (Build & Test)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+      
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Instalar Dependencias
+        working-directory: ./src
+        run: npm ci
+        
+      - name: Ejecutar Pruebas Unitarias (Quality Gate)
+        working-directory: ./src
+        run: npm test
+
+      - name: Configurar Credenciales AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Iniciar sesión en Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Construir y subir imagen a ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        working-directory: ./src
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+  cd-deploy-and-remediation:
+    name: Despliegue Continuo y Remediación
+    needs: ci-test-and-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Credenciales AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Conectar al Clúster EKS
+        run: aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.CLUSTER_NAME }}
+
+      - name: Inyectar Variables y Desplegar (Blue)
+        env:
+          ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Reemplazo dinámico de la imagen construida en el manifiesto
+          sed -i "s|REPOSITORY_URI_PLACEHOLDER:latest|$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG|g" k8s/deployment-blue.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/deployment-blue.yaml
+
+      - name: Validación de Salud (Quality Gate k8s)
+        run: |
+          kubectl rollout status deployment/techmarket-orders-blue --timeout=60s
+
+      - name: Mecanismo de Rollback Automático
+        if: failure()
+        run: |
+          echo "Alerta: Fallo en la validación de salud detectado."
+          echo "Iniciando reversión automática (Auto-Healing)..."
+          kubectl rollout undo deployment/techmarket-orders-blue
+          kubectl rollout status deployment/techmarket-orders-blue --timeout=60s
+          exit 1
