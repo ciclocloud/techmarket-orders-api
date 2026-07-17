@@ -24,7 +24,7 @@ spec:
             - containerPort: 3000
           readinessProbe:
             httpGet:
-              path: /health
+              path: /ruta-falsa    #Se cambió /health por /ruta-falsa
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 5
