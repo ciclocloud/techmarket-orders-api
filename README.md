@@ -47,4 +47,4 @@ La estrategia de despliegue sigue un flujo lógico de protección:
 *   **Seguridad:** Validación de salud pre-switch con `port-forwarding`.
 
 ---
-*Developed by [Bryan Painemilla] | Duoc UC Academic Project 2026*
+*Developed by Bryan Painemilla*
